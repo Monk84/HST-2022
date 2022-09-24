@@ -3,7 +3,12 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <time.h>
+#include <stdarg.h>
 #include "processing.h"
+
+int vfscanf_call(FILE *f, char *format, ...);
+int acquire_info(FILE *f, struct info *inf);
+int acquire_row(FILE *f, int *vec, struct info *inf);
 
 int main(int argc, char *argv[])
 {
@@ -87,5 +92,34 @@ bad_acquire_vec:
 bad_malloc_vec:
 	fclose(infile);
 	return res;
+}
+
+int vfscanf_call(FILE *f, char *format, ...)
+{
+	int res;
+	va_list arglist;
+	va_start(arglist, format);
+	res = vfscanf(f, format, arglist);
+	va_end(arglist);
+	return res;
+}
+
+int acquire_info(FILE *f, struct info *inf)
+{
+	int res = vfscanf_call(f, "%u %u\n", &inf->length, &inf->size);
+	if (res < 2 || res == EOF)
+		return 0;
+	return 1;
+}
+
+int acquire_row(FILE *f, int *vec, struct info *inf)
+{
+	int res = 0;
+	for (int i = 0; i < inf->length - 1; ++i) {
+		if (vfscanf_call(f, "%d ", vec + i) < 1)
+			break;
+	}
+	res = vfscanf_call(f, "%d\n", vec + (inf->length - 1));
+	return res == 1;
 }
 
